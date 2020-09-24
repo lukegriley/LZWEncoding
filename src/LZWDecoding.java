@@ -3,8 +3,20 @@ import java.util.*;
 
 public class LZWDecoding {
     public static void main(String[] args) throws IOException {
+    	String inputName = "";
+            try (Scanner scanner = new Scanner(System.in)) {//prompts user for file input
+            	System.out.print("Enter file name: ");
+                inputName = scanner.nextLine();
+                File testFile = new File(inputName);
+                while(!testFile.exists())
+                {
+                	System.out.print("File not found. Enter file name: ");
+                    inputName = scanner.nextLine();
+                    testFile = new File(inputName);
+                }
+            }
 		LZWDecoding decoder = new LZWDecoding();
-		decoder.decode("lzw-text1 encoded.txt");
+		decoder.decode(inputName);
     }
     
     public void decode(String input) throws IOException {
@@ -37,23 +49,23 @@ public class LZWDecoding {
             encodingTable.add(dictVal);
             value = "";
         }
-
-        reader.reset();
+        reader.close();
+        BufferedReader reader2 = new BufferedReader(new FileReader(input));
         String codeString = "";
         while (temp != ';') {// while you're still reading the codestream part of the file
-            temp = (char) reader.read();
+            temp = (char) reader2.read();
             if (temp == ';') {
                 break;
             }
             while (temp != ',') {// read each word individually
                 codeString += "" + temp;
-                temp = (char) reader.read();
+                temp = (char) reader2.read();
             }
             int codeValue = Integer.parseInt(codeString);
             decodeWriter.write(encodingTable.get(codeValue));// access the code's word in the dictionary, write it
             codeString = "";
         }
-        reader.close();
+        reader2.close();
         decodeWriter.close();
     }
 }
