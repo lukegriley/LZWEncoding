@@ -9,13 +9,13 @@ public class LZWEncoding {
 
 	public void encode(String input) throws IOException {
 		File inputFile = new File(input);
-		BufferedReader br = new BufferedReader(new FileReader(inputFile));
-		BufferedWriter bw = new BufferedWriter(new FileWriter(input.substring(0, input.length() - 4) + " encoded.txt"));
+		BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+		BufferedWriter writer = new BufferedWriter(new FileWriter(input.substring(0, input.length() - 4) + " encoded.txt"));
 
 		// create new file to write your encoded codestream and dictionary on
-		String p = "";
-		String c = "" + (char) br.read();
-		String concat = "" + c;
+		String previousChar = "";
+		String currentChar = "" + (char) reader.read();
+		String concatString = "" + currentChar;
 
 		// ArrayList<String> dictionary = new ArrayList<String>();
 		HashMap<String, Integer> encodingTable = new HashMap<String, Integer>();
@@ -30,39 +30,39 @@ public class LZWEncoding {
 			encodingTable.put(codepoint, i);
 		}
 
-		while (br.ready()) {
+		while (reader.ready()) {
 			// if it is already in the dictionary
-			if (encodingTable.containsKey(concat)) {
-				p = concat;
+			if (encodingTable.containsKey(concatString)) {
+				previousChar = concatString;
 			} else // if it's not in the dictionary
 			{
-				bw.write(encodingTable.get(p) + ",");
+				writer.write(encodingTable.get(previousChar) + ",");
 
-				if (encodingTable.get(p) < maximum) {
-					reverseTable.put(encodingTable.size(), concat);
-					encodingTable.put(concat, encodingTable.size());
+				if (encodingTable.get(previousChar) < maximum) {
+					reverseTable.put(encodingTable.size(), concatString);
+					encodingTable.put(concatString, encodingTable.size());
 				}
 
-				p = c;
+				previousChar = currentChar;
 			}
-			c = "" + (char) br.read();
-			concat = "" + p + c; // update c and concat
+			currentChar = "" + (char) reader.read();
+			concatString = "" + previousChar + currentChar; // update c and concat
 		}
 		// end of while loop case - if the next P+C isn't in the dictionary, add it
-		if (!encodingTable.containsKey(concat)) {
-			reverseTable.put(encodingTable.size(), "" + p);
-			encodingTable.put("" + p, encodingTable.size());
+		if (!encodingTable.containsKey(concatString)) {
+			reverseTable.put(encodingTable.size(), "" + previousChar);
+			encodingTable.put("" + previousChar, encodingTable.size());
 		}
-		int lastIndex = encodingTable.get(concat);// get the last index of the dictionary, write that to the file since
+		int lastIndex = encodingTable.get(concatString);// get the last index of the dictionary, write that to the file since
 													// the while loop ends one turn too early
 
-		bw.write("" + lastIndex + ",");
-		bw.write(";");
+		writer.write("" + lastIndex + ",");
+		writer.write(";");
 
 		for (int i = 256; i < encodingTable.size(); i++) {// output all the unknown codes to the end of the encoded file
-			bw.write(reverseTable.get(i).length() + "=" + reverseTable.get(i));
+			writer.write(reverseTable.get(i).length() + "=" + reverseTable.get(i));
 		}
-		bw.close();
-		br.close();
+		writer.close();
+		reader.close();
 	}
 }
