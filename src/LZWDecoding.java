@@ -1,71 +1,78 @@
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class LZWDecoding {
     public static void main(String[] args) throws IOException {
-    	String inputName = "";
-            try (Scanner scanner = new Scanner(System.in)) {//prompts user for file input
-            	System.out.print("Enter file name: ");
-                inputName = scanner.nextLine();
-                File testFile = new File(inputName);
-                while(!testFile.exists())
-                {
-                	System.out.print("File not found. Enter file name: ");
-                    inputName = scanner.nextLine();
-                    testFile = new File(inputName);
+        System.out.println("Enter the path of the file you want to be decoded");
+        String inputFilename = null;
+
+        try (Scanner sc = new Scanner(System.in)) {
+            // Keep trying to prompt user input.
+            do {
+                System.out.print("> ");
+                inputFilename = sc.nextLine();
+
+                // Check if user input is an invalid file
+                if (Files.notExists(Paths.get(inputFilename))) {
+                    System.out.println("Cannot find file.");
+                    inputFilename = null;
                 }
-            }
-		LZWDecoding decoder = new LZWDecoding();
-		decoder.decode(inputName);
-    }
-    
-    public void decode(String input) throws IOException {
-        String outputFile = input.substring(0, input.length() - 12) + ".txt";// get the original file name
-        BufferedWriter decodeWriter = new BufferedWriter(new FileWriter(outputFile));
-        BufferedReader reader = new BufferedReader(new FileReader(input));
-        ArrayList<String> encodingTable = new ArrayList<String>();// create a new dictionary arraylist that will be filled
-                                                                // in from the dictionary on the encoded file
-        for (int i = 0; i < 256; i++) {
-            encodingTable.add("" + (char) i);
-        }
-        char temp = (char) reader.read();
-        String value = "";
-        while (temp != ';') {// the first time you read the file, you have to go through until you find ';',
-                             // signifying the start of the dictionary, then you read it into an array list
-            temp = (char) reader.read();
+
+            } while (inputFilename == null);
         }
 
-        while (reader.ready()) {// setting up dictionary to decode file
-            temp = (char) reader.read();
-            while (temp != '=') {
-                value += temp;
-                temp = (char) reader.read();
+        long startTime = System.nanoTime();
+        LZWDecoding decoder = new LZWDecoding();
+        decoder.decode(inputFilename);
+        long endTime = System.nanoTime();
+
+        final double ns_to_ms = 1000000;
+
+        System.out.println("total runtime (ms): " + (double) (endTime - startTime) / ns_to_ms);
+    }
+
+    public void decode(String inputFileName) throws IOException {
+        String outputFileName = inputFileName.replaceAll("\\.lzw$", "");// get the original file name
+
+        try (FileReader inputReader = new FileReader(inputFileName)) {
+            HashMap<Integer, String> decodingTable = new HashMap<Integer, String>();
+
+            for (int i = 0; i < 256; i++) {
+                decodingTable.put(i, "" + (char) i);
             }
-            int len = Integer.parseInt("" + value);// convert string value to int
-            String dictVal = "";
-            for (int i = 0; i < len; i++) {// finds full dictionary value
-                dictVal += (char) reader.read();
+
+            StringBuilder inputBuffer = new StringBuilder();
+
+            int fileCursor;
+
+            while ((fileCursor = inputReader.read()) != -1) {
+                inputBuffer.append((char) fileCursor);
             }
-            encodingTable.add(dictVal);
-            value = "";
+
+            String[] splittext = inputBuffer.toString().split(";", 2);
+
+            String legend = splittext[1];
+            String ciphertext = splittext[0];
+
+            while (legend.length() > 0) {
+                String[] tokens = legend.split("=", 2);
+
+                int nextLen = Integer.parseInt(tokens[0]);
+                String nextEntry = tokens[1].substring(0, nextLen);
+
+                decodingTable.put(decodingTable.size(), nextEntry);
+
+                legend = tokens[1].substring(nextLen);
+            }
+
+            try (FileWriter outputWriter = new FileWriter(outputFileName)) {
+                for (String token : ciphertext.split(",")) {
+                    int substitute = Integer.parseInt(token);
+                    outputWriter.write(decodingTable.get(substitute));
+                }
+            }
         }
-        reader.close();
-        BufferedReader reader2 = new BufferedReader(new FileReader(input));
-        String codeString = "";
-        while (temp != ';') {// while you're still reading the codestream part of the file
-            temp = (char) reader2.read();
-            if (temp == ';') {
-                break;
-            }
-            while (temp != ',') {// read each word individually
-                codeString += "" + temp;
-                temp = (char) reader2.read();
-            }
-            int codeValue = Integer.parseInt(codeString);
-            decodeWriter.write(encodingTable.get(codeValue));// access the code's word in the dictionary, write it
-            codeString = "";
-        }
-        reader2.close();
-        decodeWriter.close();
     }
 }

@@ -4,19 +4,19 @@ import java.nio.file.*;
 
 public class LZWEncoding {
 	public static void main(String[] args) throws IOException {
-		System.out.println("Enter a file path of the file you want to be encoded: ");
+		System.out.println("Enter the path of the file you want to be encoded");
 		String inputFilename = null;
 
 		try (Scanner sc = new Scanner(System.in))
-		{
-			System.out.print("> ");			
-		
+		{		
 			// Keep trying to prompt user input.
 			do {
+				System.out.print("> ");
+
 				inputFilename = sc.nextLine();
 
 				// Check if user input is an invalid file
-				if (Files.notExists(Paths.get(inputFilename))) {
+				if (inputFilename.equals("") || Files.notExists(Paths.get(inputFilename))) {
 					System.out.println("Cannot find file.");
 					inputFilename = null;
 				}
@@ -24,15 +24,14 @@ public class LZWEncoding {
 			} while (inputFilename == null);
 		}
 
-		LZWEncoding encoder = new LZWEncoding();
-
-		try {
-			encoder.encode(inputFilename);
-		} catch (IOException ex) {
-			ex.printStackTrace();
-		}
-
-		System.out.println("Encoded file at " + Paths.get(inputFilename + ".lzw"));
+        long startTime = System.nanoTime();
+        LZWEncoding encoder = new LZWEncoding();
+        encoder.encode(inputFilename);
+		long endTime = System.nanoTime();
+		
+		final double ns_to_ms = 1000000;
+        
+        System.out.println("total runtime (ms): " + (double)(endTime-startTime)/ns_to_ms);
 	}
 
 	public void encode(String input) throws IOException {
@@ -85,7 +84,7 @@ public class LZWEncoding {
 														// since
 		// the while loop ends one turn too early
 
-		writer.write("" + lastIndex + ",");
+		writer.write("" + lastIndex);
 		writer.write(";");
 
 		for (int i = 256; i < encodingTable.size(); i++) {// output all the unknown codes to the end of the encoded file
